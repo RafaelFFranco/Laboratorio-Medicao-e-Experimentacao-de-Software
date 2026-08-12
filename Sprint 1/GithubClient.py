@@ -3,7 +3,6 @@ import json
 import requests
 from dotenv import load_dotenv
 
-
 class GithubClient:
     URLBASE = "https://api.github.com/graphql"
     load_dotenv()
@@ -30,6 +29,9 @@ class GithubClient:
                       name
                     }
                     createdAt
+                    releases {
+                      totalCount
+                    }
                   }
                 }
               }
@@ -42,6 +44,8 @@ class GithubClient:
             return None
         return response["data"]["search"]["nodes"]
 
+    def getReleaseCount(self, repo):
+        return (repo.get("releases") or {}).get("totalCount")
 
 if __name__ == "__main__":
     client = GithubClient()
