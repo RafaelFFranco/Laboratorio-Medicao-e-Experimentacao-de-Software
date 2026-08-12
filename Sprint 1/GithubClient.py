@@ -1,11 +1,15 @@
 import os
 import json
 import requests
+from dotenv import load_dotenv
+
 
 class GithubClient:
     URLBASE = "https://api.github.com/graphql"
+    load_dotenv()
 
     def __init__(self):
+
         auth_token = os.getenv("GITHUB_TOKEN")
         self.headers = {
             "Accept": "application/vnd.github.v3+json",
