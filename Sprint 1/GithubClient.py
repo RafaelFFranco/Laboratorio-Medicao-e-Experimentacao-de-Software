@@ -1,6 +1,7 @@
 import os
 import json
 import requests
+from datetime import datetime, timezone
 from dotenv import load_dotenv
 
 class GithubClient:
@@ -32,6 +33,7 @@ class GithubClient:
                     releases {
                       totalCount
                     }
+                    pushedAt
                   }
                 }
               }
@@ -46,6 +48,18 @@ class GithubClient:
 
     def getReleaseCount(self, repo):
         return (repo.get("releases") or {}).get("totalCount")
+
+    def getDaysSinceLastUpdate(self, repo):
+        pushed_at = repo.get("pushedAt")
+        if not pushed_at:
+            return None
+        pushed_dt = datetime.strptime(pushed_at, "%Y-%m-%dT%H:%M:%SZ").replace(tzinfo=timezone.utc)
+        dias = (datetime.now(timezone.utc) - pushed_dt).days
+        formattedDate = pushed_dt.strftime("%d/%m/%Y")
+        return {
+            "ultima_atualizacao": formattedDate,
+            "dias_desde_atualizacao": dias
+        }
 
 if __name__ == "__main__":
     client = GithubClient()
