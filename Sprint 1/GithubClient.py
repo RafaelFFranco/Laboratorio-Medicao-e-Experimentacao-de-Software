@@ -1,5 +1,4 @@
 import os
-import json
 import requests
 from datetime import datetime, timezone
 from dotenv import load_dotenv
@@ -34,6 +33,12 @@ class GithubClient:
                       totalCount
                     }
                     pushedAt
+                    totalIssues: issues {
+                      totalCount
+                    }
+                    closedIssues: issues(states: CLOSED) {
+                      totalCount
+                    }
                   }
                 }
               }
@@ -61,11 +66,9 @@ class GithubClient:
             "dias_desde_atualizacao": dias
         }
 
-if __name__ == "__main__":
-    client = GithubClient()
-    repositories = client.getTopRepositories()
-
-    if repositories is not None:
-        with open("top100.json", "w", encoding="utf-8") as f:
-            json.dump(repositories, f, indent=2, ensure_ascii=False)
-        print(f"{len(repositories)} repositórios salvos em top100.json")
+    def getClosedIssuesRatio(self, repo):
+        total = (repo.get("totalIssues") or {}).get("totalCount") or 0
+        closed = (repo.get("closedIssues") or {}).get("totalCount") or 0
+        if total == 0:
+            return None
+        return round(closed / total, 4)
