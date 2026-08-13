@@ -1,5 +1,4 @@
 import json
-from traceback import print_tb
 
 from GithubClient import GithubClient
 
@@ -49,6 +48,14 @@ def main():
 
 
             print("-" * 40)
+
+        metrics_by_language = client.getMetricsByLanguage(repositories)
+
+        print("=== Métricas agregadas por linguagem (RQ07) ===")
+        for language, metrics in metrics_by_language.items():
+            print(f"{language}: {metrics}")
+        print("-" * 40)
+
 
 if __name__ == "__main__":
     main()
