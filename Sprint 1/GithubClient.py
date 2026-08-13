@@ -115,3 +115,41 @@ class GithubClient:
             "primary": primaryLanguage,
             "languages": languages
         }
+
+    def getMetricsByLanguage(self, repositories):
+        grouped = {}
+
+        for repo in repositories:
+            language = self.getRepoLanguages(repo)["primary"]
+            releases = self.getReleaseCount(repo) or 0
+            merged_prs = self.getTotalPullRequestsAceitos(repo)
+            merged_prs = merged_prs if isinstance(merged_prs, int) else 0
+            last_update = self.getDaysSinceLastUpdate(repo)
+            days_since_update = last_update["dias_desde_atualizacao"] if last_update else None
+
+            if language not in grouped:
+                grouped[language] = {
+                    "total_releases": [],
+                    "merged_prs": [],
+                    "days_since_update": []
+                }
+
+            grouped[language]["total_releases"].append(releases)
+            grouped[language]["merged_prs"].append(merged_prs)
+            if days_since_update is not None:
+                grouped[language]["days_since_update"].append(days_since_update)
+
+        result = {}
+        for language, data in grouped.items():
+            releases_list = data["total_releases"]
+            prs_list = data["merged_prs"]
+            days_list = data["days_since_update"]
+
+            result[language] = {
+                "repository_count": len(releases_list),
+                "avg_releases": round(sum(releases_list) / len(releases_list), 2),
+                "avg_merged_prs": round(sum(prs_list) / len(prs_list), 2),
+                "avg_days_since_update": round(sum(days_list) / len(days_list), 2) if days_list else None
+            }
+
+        return result
