@@ -17,11 +17,19 @@ def main():
             releases = client.getReleaseCount(repo)
             update_info = client.getDaysSinceLastUpdate(repo)
             ratio = client.getClosedIssuesRatio(repo)
-            totalPRs = client.getTotalPullRequestsAceitos(  repo)
+            totalPRs = client.getTotalPullRequestsAceitos(repo)
+            idadeRepo = client.getRepositoryAge(repo)
 
 
             print(f"=== Repositório: {name} ===")
             print(f"Total de Releases: {releases}")
+
+            if idadeRepo is not None:
+                print(f"Data Criação: {idadeRepo.get('data_criacao')}")
+                print(f"Idade em anos: {idadeRepo.get("idade_em_anos")} anos")
+                print(f"Idade em dias: {idadeRepo.get("idade_em_dias")} dias")
+            else:
+                print("Idade: N/A")
 
             if update_info:
                 print(f"Última Atualização: {update_info['ultima_atualizacao']} ({update_info['dias_desde_atualizacao']} dias atrás)")
