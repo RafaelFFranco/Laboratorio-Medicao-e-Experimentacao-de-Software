@@ -27,8 +27,8 @@ def main():
 
             if idadeRepo is not None:
                 print(f"Data Criação: {idadeRepo.get('data_criacao')}")
-                print(f"Idade em anos: {idadeRepo.get("idade_em_anos")} anos")
-                print(f"Idade em dias: {idadeRepo.get("idade_em_dias")} dias")
+                print(f"Idade em anos: {idadeRepo.get('idade_em_anos')} anos")
+                print(f"Idade em dias: {idadeRepo.get('idade_em_dias')} dias")
             else:
                 print("Idade: N/A")
 
