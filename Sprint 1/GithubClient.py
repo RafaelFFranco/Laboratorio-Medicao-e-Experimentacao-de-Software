@@ -85,7 +85,7 @@ class GithubClient:
         return round(closed / total, 4)
 
     def getTotalPullRequestsAceitos(self, repo):
-        totalPRs = (repo.get("mergedPullRequests") or {}).get("totalCount") or 0
+        totalPRs = (repo.get("mergedPullRequests") or {}).get("totalCount") or "Sem informação"
         return totalPRs
 
     def getRepositoryAge(self, repo):

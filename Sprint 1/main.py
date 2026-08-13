@@ -17,7 +17,7 @@ def main():
             releases = client.getReleaseCount(repo)
             update_info = client.getDaysSinceLastUpdate(repo)
             ratio = client.getClosedIssuesRatio(repo)
-            totalPRs = client.getTotalPullRequestsAceitos(repo)
+            totalPRsAceitos = client.getTotalPullRequestsAceitos(repo)
             idadeRepo = client.getRepositoryAge(repo)
             languages = client.getRepoLanguages(repo)
 
@@ -45,10 +45,8 @@ def main():
             else:
                 print("Razão de Issues Fechadas: N/A (sem issues)")
 
-            if totalPRs is not None:
-                print(f"Total de PRs: {totalPRs}")
-            else:
-                print("Total de PRs: N/A (sem PRs)")
+            print(f"Total de PRs Fechados: {totalPRsAceitos}")
+
 
             print("-" * 40)
 
