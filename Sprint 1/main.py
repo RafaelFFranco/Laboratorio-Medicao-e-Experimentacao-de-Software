@@ -1,4 +1,6 @@
 import json
+from traceback import print_tb
+
 from GithubClient import GithubClient
 
 def main():
@@ -15,6 +17,8 @@ def main():
             releases = client.getReleaseCount(repo)
             update_info = client.getDaysSinceLastUpdate(repo)
             ratio = client.getClosedIssuesRatio(repo)
+            totalPRs = client.getTotalPullRequestsAceitos(  repo)
+
 
             print(f"=== Repositório: {name} ===")
             print(f"Total de Releases: {releases}")
@@ -28,6 +32,11 @@ def main():
                 print(f"Razão de Issues Fechadas: {ratio:.2%}")
             else:
                 print("Razão de Issues Fechadas: N/A (sem issues)")
+
+            if totalPRs is not None:
+                print(f"Total de PRs: {totalPRs}")
+            else:
+                print("Total de PRs: N/A (sem PRs)")
 
             print("-" * 40)
 

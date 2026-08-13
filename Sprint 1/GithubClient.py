@@ -18,7 +18,7 @@ class GithubClient:
     def getTopRepositories(self):
         query = """
             query {
-              search(query: "stars:>1 sort:stars-desc", type: REPOSITORY, first: 100) {
+              search(query: "stars:>1 sort:stars-desc", type: REPOSITORY, first: 10) {
                 nodes {
                   ... on Repository {
                     nameWithOwner
@@ -37,6 +37,12 @@ class GithubClient:
                       totalCount
                     }
                     closedIssues: issues(states: CLOSED) {
+                      totalCount
+                    }
+                    totalPullRequests: pullRequests {
+                      totalCount
+                    }
+                    mergedPullRequests: pullRequests(states: MERGED) {
                       totalCount
                     }
                   }
@@ -72,3 +78,7 @@ class GithubClient:
         if total == 0:
             return None
         return round(closed / total, 4)
+
+    def getTotalPullRequestsAceitos(self, repo):
+        totalPRs = (repo.get("mergedPullRequests") or {}).get("totalCount") or 0
+        return totalPRs
