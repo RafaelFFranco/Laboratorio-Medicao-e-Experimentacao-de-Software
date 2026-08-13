@@ -82,3 +82,20 @@ class GithubClient:
     def getTotalPullRequestsAceitos(self, repo):
         totalPRs = (repo.get("mergedPullRequests") or {}).get("totalCount") or 0
         return totalPRs
+
+    def getRepositoryAge(self, repo):
+        created_at = repo.get("createdAt")
+        if not created_at:
+            return None
+
+        created_dt = datetime.strptime(created_at, "%Y-%m-%dT%H:%M:%SZ").replace(tzinfo=timezone.utc)
+
+        dias = (datetime.now(timezone.utc) - created_dt).days
+        anos = round(dias / 365, 1)
+        formattedDate = created_dt.strftime("%d/%m/%Y")
+
+        return {
+            "data_criacao": formattedDate,
+            "idade_em_dias": dias,
+            "idade_em_anos": anos
+        }
