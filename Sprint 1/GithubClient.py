@@ -18,7 +18,7 @@ class GithubClient:
     def getTopRepositories(self):
         query = """
             query {
-              search(query: "stars:>1 sort:stars-desc", type: REPOSITORY, first: 10) {
+              search(query: "stars:>1 sort:stars-desc", type: REPOSITORY, first: 20) {
                 nodes {
                   ... on Repository {
                     nameWithOwner
@@ -44,6 +44,11 @@ class GithubClient:
                     }
                     mergedPullRequests: pullRequests(states: MERGED) {
                       totalCount
+                    }
+                    languages(first: 10) {
+                      nodes {
+                        name
+                      }
                     }
                   }
                 }
@@ -98,4 +103,15 @@ class GithubClient:
             "data_criacao": formattedDate,
             "idade_em_dias": dias,
             "idade_em_anos": anos
+        }
+
+    def getRepoLanguages(self, repo):
+        nodes = repo.get("languages").get("nodes")
+        languagesVector = [node.get("name") for node in nodes if node]
+
+        languages = ", " .join(languagesVector) if languagesVector else "Sem informação"
+        primaryLanguage = languagesVector[0] if languagesVector else "Sem informação"
+        return {
+            "primary": primaryLanguage,
+            "languages": languages
         }

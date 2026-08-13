@@ -19,6 +19,7 @@ def main():
             ratio = client.getClosedIssuesRatio(repo)
             totalPRs = client.getTotalPullRequestsAceitos(repo)
             idadeRepo = client.getRepositoryAge(repo)
+            languages = client.getRepoLanguages(repo)
 
 
             print(f"=== Repositório: {name} ===")
@@ -35,6 +36,9 @@ def main():
                 print(f"Última Atualização: {update_info['ultima_atualizacao']} ({update_info['dias_desde_atualizacao']} dias atrás)")
             else:
                 print("Última Atualização: Sem informação")
+
+            print(f"Linguagem Primária: {languages.get('primary')}")
+            print(f"Linguages do Repositório: {languages.get('languages')}")
 
             if ratio is not None:
                 print(f"Razão de Issues Fechadas: {ratio:.2%}")
