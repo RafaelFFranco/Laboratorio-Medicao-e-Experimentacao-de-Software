@@ -1,4 +1,6 @@
 import os
+import csv
+import json
 import time
 import requests
 from datetime import datetime, timezone
@@ -7,6 +9,31 @@ from dotenv import load_dotenv
 class GithubClient:
     URLBASE = "https://api.github.com/graphql"
     load_dotenv()
+
+    CSV_FIELDNAMES = [
+        "nome_repositorio",
+        "url",
+        "estrelas",
+        "data_criacao",
+        "idade_em_dias",
+        "idade_em_anos",
+        "total_pull_requests",
+        "total_pull_requests_aceitas",
+        "total_releases",
+        "data_ultima_atualizacao",
+        "dias_desde_ultima_atualizacao",
+        "linguagem_primaria",
+        "linguagens",
+        "total_issues",
+        "issues_abertas",
+        "issues_fechadas",
+        "razao_issues_fechadas",
+        "media_prs_aceitas_linguagem",
+        "media_releases_linguagem",
+        "media_dias_desde_atualizacao_linguagem",
+    ]
+
+    CSV_MISSING_VALUE = ""
 
     def __init__(self):
         auth_token = os.getenv("GITHUB_TOKEN")
@@ -111,28 +138,43 @@ class GithubClient:
         print("Número máximo de retentativas atingido.")
         return None
 
-    def getTopRepositories(self, target_count=1000, page_size=30, delay_between_pages=1.0):
+    def getTopRepositories(self, target_count=1000, page_size=50, delay_between_pages=1.0,
+                            min_page_size=1, checkpoint_file="checkpoint_repos.json"):
         all_repos = []
         seen = set()
         cursor = None
         has_next_page = True
 
+        if checkpoint_file and os.path.exists(checkpoint_file):
+            with open(checkpoint_file, "r", encoding="utf-8") as f:
+                checkpoint = json.load(f)
+            all_repos = checkpoint.get("repos", [])
+            cursor = checkpoint.get("cursor")
+            seen = {repo.get("nameWithOwner") for repo in all_repos if repo.get("nameWithOwner")}
+            print(f"Retomando checkpoint: {len(all_repos)} repositórios já coletados anteriormente.")
+
         while has_next_page and len(all_repos) < target_count:
             remaining = target_count - len(all_repos)
-            first = min(page_size, remaining)
+            current_page_size = min(page_size, remaining)
+            data = None
 
-            payload = {
-                "query": GithubClient.SEARCH_QUERY,
-                "variables": {
-                    "searchQuery": "stars:>1 sort:stars-desc",
-                    "first": first,
-                    "cursor": cursor
+            while True:
+                payload = {
+                    "query": GithubClient.SEARCH_QUERY,
+                    "variables": {
+                        "searchQuery": "stars:>1 sort:stars-desc",
+                        "first": current_page_size,
+                        "cursor": cursor
+                    }
                 }
-            }
+                data = self._post_with_retry(payload)
+                if data is not None or current_page_size <= min_page_size:
+                    break
+                current_page_size = max(current_page_size // 2, min_page_size)
+                print(f"Página falhou repetidamente. Tentando novamente com página menor ({current_page_size})...")
 
-            data = self._post_with_retry(payload)
             if data is None:
-                print("Falha ao obter página. Interrompendo coleta.")
+                print("Falha ao obter página mesmo após reduzir o tamanho. Interrompendo coleta.")
                 break
 
             search_data = data["data"]["search"]
@@ -148,10 +190,17 @@ class GithubClient:
             has_next_page = page_info["hasNextPage"]
             cursor = page_info["endCursor"]
 
+            if checkpoint_file:
+                with open(checkpoint_file, "w", encoding="utf-8") as f:
+                    json.dump({"repos": all_repos, "cursor": cursor}, f, ensure_ascii=False)
+
             print(f"Coletados: {len(all_repos)}/{target_count}")
 
             if has_next_page and len(all_repos) < target_count:
                 time.sleep(delay_between_pages)
+
+        if checkpoint_file and len(all_repos) >= target_count and os.path.exists(checkpoint_file):
+            os.remove(checkpoint_file)
 
         return all_repos
 
@@ -180,6 +229,13 @@ class GithubClient:
     def getTotalPullRequestsAceitos(self, repo):
         totalPRs = (repo.get("mergedPullRequests") or {}).get("totalCount") or "Sem informação"
         return totalPRs
+
+    def getOpenIssuesCount(self, repo):
+        total = (repo.get("totalIssues") or {}).get("totalCount")
+        closed = (repo.get("closedIssues") or {}).get("totalCount")
+        if total is None or closed is None:
+            return None
+        return total - closed
 
     def getRepositoryAge(self, repo):
         created_at = repo.get("createdAt")
@@ -240,3 +296,61 @@ class GithubClient:
             }
 
         return result
+
+    def buildCsvRow(self, repo, metrics_by_language=None):
+        missing = GithubClient.CSV_MISSING_VALUE
+        metrics_by_language = metrics_by_language or {}
+
+        idade = self.getRepositoryAge(repo)
+        atualizacao = self.getDaysSinceLastUpdate(repo)
+        ratio = self.getClosedIssuesRatio(repo)
+
+        total_issues = (repo.get("totalIssues") or {}).get("totalCount")
+        closed_issues = (repo.get("closedIssues") or {}).get("totalCount")
+        open_issues = self.getOpenIssuesCount(repo)
+        total_prs = (repo.get("totalPullRequests") or {}).get("totalCount")
+        merged_prs = (repo.get("mergedPullRequests") or {}).get("totalCount")
+        releases = self.getReleaseCount(repo)
+
+        language_nodes = (repo.get("languages") or {}).get("nodes") or []
+        language_names = [node.get("name") for node in language_nodes if node and node.get("name")]
+        primary_language = language_names[0] if language_names else None
+        languages_joined = ", ".join(language_names) if language_names else None
+        language_stats = metrics_by_language.get(self.getRepoLanguages(repo).get("primary"))
+
+        def fallback(value):
+            return value if value is not None else missing
+
+        return {
+            "nome_repositorio": fallback(repo.get("nameWithOwner")),
+            "url": fallback(repo.get("url")),
+            "estrelas": fallback(repo.get("stargazerCount")),
+            "data_criacao": fallback(idade.get("data_criacao")) if idade else missing,
+            "idade_em_dias": fallback(idade.get("idade_em_dias")) if idade else missing,
+            "idade_em_anos": fallback(idade.get("idade_em_anos")) if idade else missing,
+            "total_pull_requests": fallback(total_prs),
+            "total_pull_requests_aceitas": fallback(merged_prs),
+            "total_releases": fallback(releases),
+            "data_ultima_atualizacao": fallback(atualizacao.get("ultima_atualizacao")) if atualizacao else missing,
+            "dias_desde_ultima_atualizacao": fallback(atualizacao.get("dias_desde_atualizacao")) if atualizacao else missing,
+            "linguagem_primaria": fallback(primary_language),
+            "linguagens": fallback(languages_joined),
+            "total_issues": fallback(total_issues),
+            "issues_abertas": fallback(open_issues),
+            "issues_fechadas": fallback(closed_issues),
+            "razao_issues_fechadas": fallback(ratio),
+            "media_prs_aceitas_linguagem": fallback(language_stats.get("avg_merged_prs")) if language_stats else missing,
+            "media_releases_linguagem": fallback(language_stats.get("avg_releases")) if language_stats else missing,
+            "media_dias_desde_atualizacao_linguagem": fallback(language_stats.get("avg_days_since_update")) if language_stats else missing,
+        }
+
+    def exportRepositoriesToCsv(self, repositories, filename="repositorios_1000.csv"):
+        metrics_by_language = self.getMetricsByLanguage(repositories)
+
+        with open(filename, "w", newline="", encoding="utf-8") as f:
+            writer = csv.DictWriter(f, fieldnames=GithubClient.CSV_FIELDNAMES)
+            writer.writeheader()
+            for repo in repositories:
+                writer.writerow(self.buildCsvRow(repo, metrics_by_language))
+
+        return filename
