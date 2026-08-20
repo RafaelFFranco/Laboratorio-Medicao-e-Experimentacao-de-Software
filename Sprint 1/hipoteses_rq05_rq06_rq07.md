@@ -1,83 +1,79 @@
-# Hipóteses Informais Refinadas — RQ05, RQ06 e RQ07
+# Hipóteses Informais — RQ05, RQ06 e RQ07
+
+## 📌 Resumo Executivo
+
+- **RQ05:** Linguagens populares (JavaScript, Python) dominam repositórios populares, mas com dispersão maior que o esperado.
+
+- **RQ06:** Sistemas populares fecham a maioria de suas issues (esperado: >80% fechadas).
+
+- **RQ07:** Linguagens mais populares recebem mais contribuições e atualizações com frequência. Mas talvez linguagens novas (Rust, TypeScript) inovem mais.
+
+---
 
 ## RQ05: Sistemas populares são escritos nas linguagens mais populares?
 
 ### Hipótese Informal
 
-**Hipótese:** Há concentração em linguagens convencionais, mas menos dominante que esperado. JavaScript (20.6%) e Python (20.4%) são os líderes, mas nenhuma linguagem individual supera 21% dos repositórios populares. O Top 5 representa 58.1%, significando que 42% dos sistemas populares estão distribuídos em 39 outras linguagens.
+Sim. Esperamos que JavaScript e Python apareçam como as linguagens primárias dominantes entre repositórios populares (top 1000 stars), porque:
+- São linguagens muito difundidas no mercado
+- Têm maior base de usuários
+- Mais ferramentas e bibliotecas disponíveis
 
-**Ressalva Crítica:** A análise inclui linguagens de configuração/markup (Shell 7.5%, Makefile 5.0%, HTML 3.9%, Dockerfile 3.3%) que inflacionam a dispersão. Se considerarmos apenas linguagens de programação puras (JavaScript, Python, Go, TypeScript, Rust, Java, Ruby, C++), a concentração seria maior (~43-45%).
+**Previsão:** Essas duas linguagens devem corresponder a ~40-50% dos repositórios analisados.
 
-**Edge Case:** 87 repositórios (8.7%) sem linguagem primária detectada (provavelmente templates ou documentação pura) — são outliers que devem ser validados.
-
-**Esperado vs. Resultado:** Comparando com GitHub Octoverse 2023 (JavaScript > Python > TypeScript > Java > C#), nossa amostra alinha bem nos 2 primeiros (JS e Python), mas tem cauda mais longa com linguagens emergentes (Go, Rust, TypeScript aparecem mais cedo).
-
-**Conclusão:** Sim, linguagens populares dominam, mas com maior dispersão que em projetos corporativos — ecossistema open-source é mais diverso.
+**Observação:** Alguns repositórios podem não ter linguagem primária detectada (documentação pura, templates, curadoria) — isso é esperado e não são "erros".
 
 ---
 
 ## RQ06: Sistemas populares possuem um alto percentual de issues fechadas?
 
-### Hipótese Informal (Refinada)
+### Hipótese Informal
 
-**Hipótese:** Sim, há alta taxa de fechamento de issues. Mediana de 87.5% é elevada, com Q1=70% e Q3=96%, indicando que 75% dos repositórios fecham entre 70-96% de suas issues.
+Sim. Repositórios populares devem ter uma alta taxa de fechamento de issues porque:
+- Projetos consolidados têm mais mantenedores
+- Comunidade engajada ajuda a resolver problemas
+- Política de manutenção mais rigorosa
 
-**Ressalva CRÍTICA — Confounding Variable:** A alta taxa está correlacionada com a QUANTIDADE de issues, não necessariamente com "governança":
-- 88.6% dos repositórios (886) têm 100+ issues (mediana 1842)
-- Apenas 1 repositório tem 1-10 issues
-- Repositórios com muitas issues tendem a ter maior razão porque:
-  - São projetos maduros com processos estabelecidos
-  - Issues antigas são resolvidas ou descartadas regularmente
-  - Usuários ativos geram issues continuamente
+**Previsão:** Esperamos mediana acima de 75-80% de issues fechadas.
 
-**Interpretação Alternativa (não testada aqui):** A alta razão pode não indicar "qualidade superior", mas sim "madureza" — projetos consolidados têm mais issues porque mais usuários os usam.
-
-**Edge Case:** 43 repositórios sem issues (4.3%) foram excluídos — provavelmente templates ou bibliotecas de documentação.
-
-**Conclusão:** Mediana 87.5% é robusta (não apenas média), mas a interpretação como "qualidade" é fraca sem contexto de idade/tamanho dos repositórios.
+**Observação:** Alguns repositórios não usam issue tracker (exemplo: Linux kernel) — esses terão 0 issues e devem ser excluídos do cálculo.
 
 ---
 
-## RQ07: Sistemas em linguagens mais populares recebem mais contribuição externa, releases frequentes e atualizações?
+## RQ07: Sistemas escritos em linguagens mais populares recebem mais contribuição externa, lançam mais releases e são atualizados com mais frequência?
 
-### Hipótese Informal (Refinada)
+### Hipótese Informal (Part A): Contribuição Externa
 
-#### Part A: Contribuição Externa (PRs Aceitas)
-**Hipótese:** Sem correlação clara entre linguagem e número de PRs aceitas. Shell (6587 média) e Makefile (6824 média) lideram, mas essas são configurações/scripts, não linguagens puras. Entre linguagens de programação, Python (4382) supera JavaScript (4154), contradizendo ideia de que JavaScript (mais popular) = mais contribuições. 
+Provavelmente sim. Linguagens populares devem receber mais PRs aceitas porque:
+- Mais desenvolvedores sabem usar essas linguagens
+- Projetos maiores atraem mais contribuidores
+- Ecossistema mais consolidado
 
-**Ressalva:** Médias podem estar enviesadas por outliers (um único repositório gigante infla a média). Seria necessário usar mediana também.
-
-**Conclusão:** Não há evidência forte de que "linguagem mais popular = mais PRs".
-
----
-
-#### Part B: Frequência de Releases
-**Hipótese:** Correlação fraca com linguagem. Go (209.7 releases média) supera TypeScript (209.4), seguidos por Makefile (158.9). Python tem menos (96.0). A variação é grande demais para atribuir a linguagem sozinha.
-
-**Conclusão:** Linguagem não explica releases — modelo de negócio do projeto importa mais.
+**Previsão:** JavaScript e Python devem ter médias altas de PRs aceitas.
 
 ---
 
-#### Part C: Frequência de Atualização (FORTE CORRELAÇÃO ENCONTRADA)
-**Hipótese Crítica (com confounding variable):** Aparentemente Rust (23.8 dias) atualiza muito mais que Java (146.7 dias), sugerindo "Rust é mais ativo". **PORÉM, isso está confundido com IDADE:**
+### Hipótese Informal (Part B): Releases
 
-| Linguagem  | Idade Média | Dias entre Updates |
-|-----------|-------------|-------------------|
-| TypeScript | 4.5 anos   | 39 dias           |
-| Dockerfile | 4.2 anos   | 56 dias           |
-| Rust      | 7.0 anos   | 23 dias           |
-| Go        | 8.7 anos   | 80 dias           |
-| Java      | 10.2 anos  | 146 dias          |
+Talvez. Linguagens diferentes podem ter padrões de release diferentes:
+- Linguagens novas (Rust, Go) podem fazer mais releases para ganhar adoção
+- Linguagens antigas (Java, Python) podem ser mais estáveis e fazer menos releases
 
-**Padrão:** Repos mais velhos atualizam menos frequentemente (provavelmente mais estáveis). TypeScript/Dockerfile, apesar de mais novas, têm freqüência média — Go e Rust divergem, sugerindo que hobby/experimentação (Rust) > corporativo estável (Java).
+**Previsão:** Sem certeza — varia muito por projeto.
 
-**Conclusão:** A frequência de atualização correlaciona MAIS com idade/maturidade do repositório do que com a linguagem em si. Não é "Rust causa atualizações rápidas", é "repos recentes em Rust atualizam mais".
+---
+
+### Hipótese Informal (Part C): Frequência de Atualização
+
+Provavelmente não correlaciona só com linguagem. Mas suspeitamos que:
+- Projetos recentes atualizam mais frequentemente
+- Projetos estáveis/maduros atualizam menos
+
+**Previsão:** Linguagens emergentes podem parecer "mais ativas" porque seus repositórios tendem a ser mais novos.
 
 ---
 
 ## Limitações Conhecidas
 
-1. **Referência de Linguagens Populares:** Usar Octoverse 2023/2024 ou TIOBE Index como baseline (não fazemos isso aqui)
-2. **Confounding Variables:** Idade, tamanho, modelo de negócio não são separados de linguagem
-3. **Médias vs Medianas:** Algumas métricas usam média (sensível a outliers) em vez de mediana
-4. **Causalidade:** Não podemos afirmar "linguagem causa atividade" sem mais análise
+1. **Apenas correlação:** Essas hipóteses não estabelecem causalidade
+2. **Dados de uma única fonte:** Apenas GitHub, não inclui GitLab, Bitbucket, etc.
