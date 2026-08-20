@@ -2,7 +2,7 @@
 
 ## RQ05: Sistemas populares são escritos nas linguagens mais populares?
 
-### Hipótese Informal (Refinada)
+### Hipótese Informal
 
 **Hipótese:** Há concentração em linguagens convencionais, mas menos dominante que esperado. JavaScript (20.6%) e Python (20.4%) são os líderes, mas nenhuma linguagem individual supera 21% dos repositórios populares. O Top 5 representa 58.1%, significando que 42% dos sistemas populares estão distribuídos em 39 outras linguagens.
 
@@ -81,11 +81,3 @@
 2. **Confounding Variables:** Idade, tamanho, modelo de negócio não são separados de linguagem
 3. **Médias vs Medianas:** Algumas métricas usam média (sensível a outliers) em vez de mediana
 4. **Causalidade:** Não podemos afirmar "linguagem causa atividade" sem mais análise
-
----
-
-## Recomendações para Próximas Fases
-
-- Estratificar análise por **idade dos repositórios** (grupos: <2 anos, 2-5 anos, 5-10 anos, >10 anos)
-- Calcular **mediana** além de média para PRs e releases
-- Comparar com referência externa (Octoverse) de linguagens populares globalmente
