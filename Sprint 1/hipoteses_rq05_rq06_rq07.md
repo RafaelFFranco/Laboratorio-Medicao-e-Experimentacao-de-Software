@@ -1,6 +1,6 @@
 # Hipóteses Informais — RQ05, RQ06 e RQ07
 
-## 📌 Resumo Executivo
+## Resumo Executivo
 
 - **RQ05:** Linguagens populares (JavaScript, Python) dominam repositórios populares, mas com dispersão maior que o esperado.
 

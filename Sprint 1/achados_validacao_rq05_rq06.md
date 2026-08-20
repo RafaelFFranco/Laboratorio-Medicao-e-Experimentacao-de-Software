@@ -2,7 +2,7 @@
 
 ## RQ05: Linguagem Primária
 
-### Qualidade dos Dados: ✅ EXCELENTE
+### Qualidade dos Dados:  EXCELENTE
 
 | Métrica | Valor |
 |---------|-------|
@@ -27,7 +27,7 @@
 
 **87 repositórios sem linguagem primária (8.7%):**
 - Tipo: Documentação/templates/curadoria (sindresorhus/awesome, github/gitignore, coding-interview-university)
-- Válidos? ✅ Sim — são repositórios legítimos fora do escopo "software real"
+- Válidos?  Sim — são repositórios legítimos fora do escopo "software real"
 - Recomendação: Separar para análises futuras se necessário
 
 **Distribuição equilibrada:**
@@ -37,13 +37,12 @@
 - 11 linguagens com 2-5 repos
 - 14 linguagens com 1 repo
 
-**Conclusão:** Dados válidos, sem erros de coleta. ✅
-
+**Conclusão:** Dados válidos, sem erros de coleta.
 ---
 
 ## RQ06: Razão Issues Fechadas
 
-### Qualidade dos Dados: ✅ EXCELENTE
+### Qualidade dos Dados:  EXCELENTE
 
 | Métrica | Valor |
 |---------|-------|
@@ -83,12 +82,12 @@
 
 **43 repositórios SEM issues (4.3%):**
 - Tipo: Documentação/templates (torvalds/linux, vinta/awesome-python)
-- Válidos? ✅ Sim — não usam issue tracker
+- Válidos?  Sim — não usam issue tracker
 - Corretamente excluídos do cálculo
 
 **Outliers baixos (3.97%):**
 - 38 repos com ratio < 30% — projetos com muitas issues abertas
-- Válidos? ✅ Sim — podem estar em desenvolvimento ou abandonados
+- Válidos?  Sim — podem estar em desenvolvimento ou abandonados
 
 ### Confounding Variable Crítica
 
@@ -101,17 +100,10 @@
 
 ---
 
-## ✅ VALIDAÇÃO FINAL
+##  VALIDAÇÃO FINAL
 
 **RQ05 — Linguagem Primária:**
-- Dados válidos ✅
-- Distribuição legítima ✅
-- Pronto para análise ✅
-
+- Dados válidos - Distribuição legítima - Pronto para análise 
 **RQ06 — Razão Issues Fechadas:**
-- Dados válidos ✅
-- Mediana robusta ✅
-- Confounding variable identificada ✅
-- Pronto para análise ✅
-
-**Conclusão:** Qualidade de dados EXCELENTE. 0 erros de coleta. Aprovado para análise estatística. ✅
+- Dados válidos - Mediana robusta - Confounding variable identificada - Pronto para análise 
+**Conclusão:** Qualidade de dados EXCELENTE. 0 erros de coleta. Aprovado para análise estatística. 
