@@ -188,9 +188,61 @@ class GithubVisualizer:
             "dias_desde_atualizacao.png"
         )
 
+    def plot_language_comparison_heatmap(self, top_n=10):
+        grouped = self.df.groupby("linguagem_primaria").agg(
+            repositorios=("linguagem_primaria", "count"),
+            media_prs_aceitas=("total_pull_requests_aceitas", "mean"),
+            media_releases=("total_releases", "mean"),
+            media_dias_atualizacao=("dias_desde_ultima_atualizacao", "mean"),
+        )
+
+        grouped = grouped.sort_values("repositorios", ascending=False).head(top_n)
+
+        max_dias = grouped["media_dias_atualizacao"].max()
+        grouped["frequencia_atualizacao"] = max_dias - grouped["media_dias_atualizacao"]
+
+        display_cols = {
+            "media_prs_aceitas": "Média PRs Aceitas\n(RQ02)",
+            "media_releases": "Média Releases\n(RQ03)",
+            "frequencia_atualizacao": "Frequência de Atualização\n(RQ04)",
+        }
+        heat_data = grouped[list(display_cols.keys())].rename(columns=display_cols)
+
+        normalized = (heat_data - heat_data.min()) / (heat_data.max() - heat_data.min())
+
+        annot = heat_data.copy()
+        annot["Média PRs Aceitas\n(RQ02)"] = annot["Média PRs Aceitas\n(RQ02)"].round(1)
+        annot["Média Releases\n(RQ03)"] = annot["Média Releases\n(RQ03)"].round(1)
+        annot["Frequência de Atualização\n(RQ04)"] = grouped["media_dias_atualizacao"].round(0).astype(
+            int).astype(str) + " dias"
+
+        fig, ax = plt.subplots(figsize=(9, 0.6 * len(heat_data) + 2))
+        sns.heatmap(
+            normalized,
+            annot=annot,
+            fmt="",
+            cmap="YlGnBu",
+            linewidths=0.5,
+            linecolor="white",
+            cbar_kws={"label": "Posição relativa entre as linguagens (normalizado)"},
+            ax=ax
+        )
+
+        ax.set_title(
+            f"Comparação por Linguagem: Contribuição, Releases e Atualização (Top {top_n})",
+            fontsize=13, fontweight="bold", pad=15
+        )
+        ax.set_xlabel("")
+        ax.set_ylabel("Linguagem Primária")
+        ax.tick_params(axis="y", rotation=0)
+
+        fig.tight_layout()
+        return self._save(fig, "comparacao_linguagens_rq07.png")
+
     def generate_all(self):
         # self.plot_releases_distribution()
-        self.plot_days_since_update()
+        # self.plot_days_since_update()
+        self.plot_language_comparison_heatmap()
 
 
 if __name__ == "__main__":
