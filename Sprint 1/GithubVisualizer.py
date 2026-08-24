@@ -78,8 +78,119 @@ class GithubVisualizer:
             "distribuicao_total_releases.png"
         )
 
+    def plot_days_since_update(self):
+        data = self.df["dias_desde_ultima_atualizacao"].dropna()
+        data = data[data >= 0]
+
+        q1 = data.quantile(0.25)
+        mediana = data.median()
+        q3 = data.quantile(0.75)
+        media = data.mean()
+        p90 = data.quantile(0.90)
+
+        ate_30 = (data <= 30).mean() * 100
+        ate_90 = (data <= 90).mean() * 100
+        ate_365 = (data <= 365).mean() * 100
+        mais_1_ano = (data > 365).mean() * 100
+
+        fig, ax = plt.subplots(figsize=(13, 5))
+
+        sns.boxplot(
+            x=data,
+            ax=ax,
+            width=0.4,
+            showfliers=True,
+            flierprops=dict(
+                marker="o",
+                markersize=3,
+                alpha=0.2
+            )
+        )
+
+        ax.set_xscale("symlog", linthresh=1)
+
+        ax.axvline(
+            mediana,
+            linestyle="--",
+            linewidth=2,
+            label=f"Mediana: {mediana:.0f} dias"
+        )
+
+        ax.set_title(
+            "Dias Desde a Última Atualização dos 1.000 Repositórios",
+            fontsize=15,
+            fontweight="bold",
+            pad=15
+        )
+
+        ax.set_xlabel(
+            "Dias desde a última atualização",
+            fontsize=11
+        )
+
+        ax.set_yticks([])
+
+        texto = (
+            f"Q1: {q1:,.0f} dias\n"
+            f"Mediana: {mediana:,.0f} dias\n"
+            f"Q3: {q3:,.0f} dias\n"
+            f"Média: {media:,.0f} dias\n"
+            f"P90: {p90:,.0f} dias"
+        )
+
+        ax.text(
+            0.98,
+            0.90,
+            texto,
+            transform=ax.transAxes,
+            ha="right",
+            va="top",
+            fontsize=9,
+            bbox=dict(
+                boxstyle="round,pad=0.6",
+                facecolor="white",
+                edgecolor="gray",
+                alpha=0.95
+            )
+        )
+
+        resumo = (
+            f"≤ 30 dias: {ate_30:.1f}%   |   "
+            f"≤ 90 dias: {ate_90:.1f}%   |   "
+            f"≤ 1 ano: {ate_365:.1f}%   |   "
+            f"> 1 ano: {mais_1_ano:.1f}%"
+        )
+
+        fig.text(
+            0.5,
+            0.02,
+            resumo,
+            ha="center",
+            fontsize=10
+        )
+
+        ax.grid(
+            axis="x",
+            linestyle="--",
+            alpha=0.2
+        )
+
+        ax.legend(
+            loc="upper left",
+            fontsize=9,
+            frameon=True
+        )
+
+        plt.tight_layout(rect=[0, 0.08, 1, 1])
+
+        return self._save(
+            fig,
+            "dias_desde_atualizacao.png"
+        )
+
     def generate_all(self):
-        self.plot_releases_distribution()
+        # self.plot_releases_distribution()
+        self.plot_days_since_update()
 
 
 if __name__ == "__main__":
