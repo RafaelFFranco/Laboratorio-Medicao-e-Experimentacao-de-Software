@@ -7,7 +7,7 @@ def main():
     repositories = client.getTopRepositories()
 
     if repositories:
-        with open("top100.json", "w", encoding="utf-8") as f:
+        with open("top1000.json", "w", encoding="utf-8") as f:
             json.dump(repositories, f, indent=2, ensure_ascii=False)
         print(f"{len(repositories)} repositórios salvos em top100.json\n")
 
@@ -55,6 +55,9 @@ def main():
         for language, metrics in metrics_by_language.items():
             print(f"{language}: {metrics}")
         print("-" * 40)
+
+        csv_filename = client.exportRepositoriesToCsv(repositories)
+        print(f"{len(repositories)} repositórios exportados para {csv_filename}")
 
 
 if __name__ == "__main__":
