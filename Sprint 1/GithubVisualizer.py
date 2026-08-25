@@ -1,7 +1,10 @@
 import os
+
+import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
+from scipy.stats import pearsonr
 
 
 class GithubVisualizer:
@@ -11,7 +14,13 @@ class GithubVisualizer:
         os.makedirs(self.output_dir, exist_ok=True)
 
         self.df = pd.read_csv(csv_path)
-        numeric_cols = ["total_releases"]
+        numeric_cols = [
+            "total_pull_requests",
+            "total_pull_requests_aceitas",
+            "total_releases",
+            "dias_desde_ultima_atualizacao",
+            "razao_issues_fechadas",
+        ]
         for col in numeric_cols:
             if col in self.df.columns:
                 self.df[col] = pd.to_numeric(self.df[col], errors="coerce")
@@ -239,11 +248,81 @@ class GithubVisualizer:
         fig.tight_layout()
         return self._save(fig, "comparacao_linguagens_rq07.png")
 
+    def plot_language_diversity_vs_contribution(self):
+        df = self.df.copy()
+
+        def contar_linguagens(valor):
+            if not isinstance(valor, str) or not valor.strip():
+                return None
+            itens = [v.strip() for v in valor.split(",") if v.strip() and v.strip() != "Sem informação"]
+            return len(itens) if itens else None
+
+        df["diversidade_linguagens"] = df["linguagens"].apply(contar_linguagens)
+
+        data = df.dropna(subset=["diversidade_linguagens", "total_pull_requests_aceitas"])
+        data = data[data["total_pull_requests_aceitas"] >= 0]
+
+        r, p = pearsonr(data["diversidade_linguagens"], data["total_pull_requests_aceitas"])
+
+        rng = np.random.default_rng(42)
+        jitter = rng.uniform(-0.18, 0.18, size=len(data))
+        x_jitter = data["diversidade_linguagens"].to_numpy() + jitter
+
+        fig, ax = plt.subplots(figsize=(10, 7))
+
+        scatter = ax.scatter(
+            x_jitter,
+            data["total_pull_requests_aceitas"],
+            c=data["razao_issues_fechadas"],
+            cmap="RdYlGn",
+            alpha=0.45,
+            s=35,
+            edgecolor="white",
+            linewidth=0.3,
+            zorder=1
+        )
+
+        sns.regplot(
+            x="diversidade_linguagens",
+            y="total_pull_requests_aceitas",
+            data=data,
+            scatter=False,
+            ax=ax,
+            color="#1f3d7a",
+            line_kws={"linestyle": "-", "linewidth": 3.5, "zorder": 5},
+            ci=95
+        )
+
+        cbar = fig.colorbar(scatter, ax=ax)
+        cbar.set_label("Razão de Issues Fechadas (RQ06)")
+
+        significancia = "significativa" if p < 0.05 else "não significativa"
+
+        ax.set_title(
+            f"Correlação de Pearson: r = {r:.3f}   (p = {p:.4f}, {significancia})",
+            fontsize=10, style="italic", pad=8
+        )
+        fig.suptitle(
+            "Diversidade Linguística vs. Contribuição Externa e Qualidade de Manutenção",
+            fontsize=13, fontweight="bold", y=0.98
+        )
+
+        ax.set_xticks(sorted(data["diversidade_linguagens"].unique()))
+        ax.set_xlabel("Nº de Linguagens Distintas no Repositório")
+        ax.set_ylabel("Total de Pull Requests Aceitas")
+
+        ax.set_yscale("symlog", linthresh=1000)
+        ax.set_ylim(bottom=0)
+        ax.grid(alpha=0.2, which="both")
+
+        fig.tight_layout(rect=[0, 0, 1, 0.94])
+        return self._save(fig, "diversidade_linguagens_vs_contribuicao.png")
+
     def generate_all(self):
         # self.plot_releases_distribution()
         # self.plot_days_since_update()
         self.plot_language_comparison_heatmap()
-
+        self.plot_language_diversity_vs_contribution()
 
 if __name__ == "__main__":
     viz = GithubVisualizer("repositorios_1000.csv")
