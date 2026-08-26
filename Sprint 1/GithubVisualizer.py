@@ -523,7 +523,7 @@ class GithubVisualizer:
         print(f"Mediana da idade dos repositórios: {mediana:.1f} anos")
         return mediana
 
-    def plot_repository_age_distribution(self):
+    def plot_repository_age_boxplot(self):
         data = self.df["idade_em_anos"].dropna()
 
         q1 = data.quantile(0.25)
@@ -531,11 +531,6 @@ class GithubVisualizer:
         q3 = data.quantile(0.75)
         media = data.mean()
         p90 = data.quantile(0.90)
-
-        ate_2 = (data <= 2).mean() * 100
-        ate_5 = (data <= 5).mean() * 100
-        ate_10 = (data <= 10).mean() * 100
-        mais_10 = (data > 10).mean() * 100
 
         fig, ax = plt.subplots(figsize=(13, 5))
 
@@ -596,6 +591,59 @@ class GithubVisualizer:
             )
         )
 
+        ax.grid(axis="x", linestyle="--", alpha=0.2)
+
+        ax.legend(
+            loc="upper left",
+            fontsize=9,
+            frameon=True
+        )
+
+        plt.tight_layout()
+
+        return self._save(
+            fig,
+            "idade_repositorios_boxplot.png"
+        )
+
+    def plot_repository_age_histogram(self):
+        data = self.df["idade_em_anos"].dropna()
+        mediana = data.median()
+
+        ate_2 = (data <= 2).mean() * 100
+        ate_5 = (data <= 5).mean() * 100
+        ate_10 = (data <= 10).mean() * 100
+        mais_10 = (data > 10).mean() * 100
+
+        fig, ax = plt.subplots(figsize=(13, 5.5))
+
+        sns.histplot(
+            data,
+            ax=ax,
+            bins=20,
+            edgecolor="white"
+        )
+
+        ax.axvline(
+            mediana,
+            linestyle="--",
+            linewidth=2,
+            label=f"Mediana: {mediana:.1f} anos"
+        )
+
+        ax.set_title(
+            "Distribuição da Idade dos 1.000 Repositórios Mais Estrelados",
+            fontsize=15,
+            fontweight="bold",
+            pad=15
+        )
+
+        ax.set_xlabel(
+            "Idade do repositório (anos)",
+            fontsize=11
+        )
+        ax.set_ylabel("Número de repositórios", fontsize=11)
+
         resumo = (
             f"≤ 2 anos: {ate_2:.1f}%   |   "
             f"≤ 5 anos: {ate_5:.1f}%   |   "
@@ -611,23 +659,19 @@ class GithubVisualizer:
             fontsize=10
         )
 
-        ax.grid(
-            axis="x",
-            linestyle="--",
-            alpha=0.2
-        )
+        ax.grid(axis="x", linestyle="--", alpha=0.2)
 
         ax.legend(
-            loc="upper left",
+            loc="upper right",
             fontsize=9,
             frameon=True
         )
 
-        plt.tight_layout(rect=[0, 0.08, 1, 1])
+        plt.tight_layout(rect=[0, 0.06, 1, 1])
 
         return self._save(
             fig,
-            "distribuicao_idade_repositorios.png"
+            "idade_repositorios_histograma.png"
         )
 
     def plot_language_comparison_heatmap(self, top_n=10):
@@ -929,7 +973,8 @@ class GithubVisualizer:
         self.median_pull_requests_aceitas()
         self.plot_pull_requests_aceitas_distribution()
         self.median_repository_age()
-        self.plot_repository_age_distribution()
+        self.plot_repository_age_boxplot()
+        self.plot_repository_age_histogram()
         self.plot_primary_language_count()
         self.plot_language_popularity_comparison()
         self.print_closed_issues_ratio_summary()
