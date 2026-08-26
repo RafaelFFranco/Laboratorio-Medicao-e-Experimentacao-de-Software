@@ -80,7 +80,7 @@ class GithubClient:
                 mergedPullRequests: pullRequests(states: MERGED) {
                   totalCount
                 }
-                languages(first: 10) {
+                languages(first: 10, orderBy: {field: SIZE, direction: DESC}) {
                   nodes {
                     name
                   }
@@ -252,10 +252,11 @@ class GithubClient:
         }
 
     def getRepoLanguages(self, repo):
-        nodes = repo.get("languages").get("nodes")
-        languagesVector = [node.get("name") for node in nodes if node]
+        nodes = (repo.get("languages") or {}).get("nodes") or []
+        languagesVector = [node.get("name") for node in nodes if node and node.get("name")]
         languages = ", ".join(languagesVector) if languagesVector else "Sem informação"
-        primaryLanguage = languagesVector[0] if languagesVector else "Sem informação"
+        apiPrimary = (repo.get("primaryLanguage") or {}).get("name")
+        primaryLanguage = apiPrimary or (languagesVector[0] if languagesVector else "Sem informação")
         return {
             "primary": primaryLanguage,
             "languages": languages
@@ -314,7 +315,7 @@ class GithubClient:
 
         language_nodes = (repo.get("languages") or {}).get("nodes") or []
         language_names = [node.get("name") for node in language_nodes if node and node.get("name")]
-        primary_language = language_names[0] if language_names else None
+        primary_language = (repo.get("primaryLanguage") or {}).get("name") or (language_names[0] if language_names else None)
         languages_joined = ", ".join(language_names) if language_names else None
         language_stats = metrics_by_language.get(self.getRepoLanguages(repo).get("primary"))
 
