@@ -10,6 +10,10 @@ from LanguagePopularitySource import LanguagePopularitySource
 
 class GithubVisualizer:
     MISSING_LANGUAGE_LABEL = "Sem linguagem definida"
+    NO_ISSUES_LABEL = "Sem issues (razão indefinida)"
+    HIGH_RATIO_THRESHOLD = 0.75
+    ISSUE_RATIO_BINS = [0, 0.10, 0.25, 0.50, 0.75, 0.90, 1.0]
+    ISSUE_RATIO_LABELS = ["0–10%", "10–25%", "25–50%", "50–75%", "75–90%", "90–100%"]
 
     COLOR_POPULAR = "#2a78d6"
     COLOR_OTHER = "#eb6834"
@@ -115,15 +119,18 @@ class GithubVisualizer:
                 color=self.COLOR_INK_SECONDARY
             )
 
-    def _source_footer(self, fig):
+    def _footnote(self, fig, text):
         fig.text(
             0.01,
             0.008,
-            LanguagePopularitySource.citation(),
+            text,
             fontsize=7.5,
             color=self.COLOR_MUTED,
             va="bottom"
         )
+
+    def _source_footer(self, fig):
+        self._footnote(fig, LanguagePopularitySource.citation())
 
     def count_by_primary_language(self, include_missing=True):
         languages = self.df["linguagem_primaria"].fillna(self.MISSING_LANGUAGE_LABEL)
@@ -164,12 +171,6 @@ class GithubVisualizer:
             "percentual_do_total": round(in_source / total * 100, 1),
             "percentual_dos_com_linguagem": round(in_source / with_language * 100, 1)
         }
-
-    def export_language_counts(self, filename="contagem_linguagem_primaria.csv"):
-        path = os.path.join(self.output_dir, filename)
-        self.build_language_count_table().to_csv(path, index=False, encoding="utf-8")
-        print(f"Contagem por linguagem salva em: {path}")
-        return path
 
     def plot_primary_language_count(self, top_n=15):
         counts = self.count_by_primary_language(include_missing=False).head(top_n)
@@ -575,11 +576,185 @@ class GithubVisualizer:
         fig.tight_layout(rect=[0, 0, 1, 0.94])
         return self._save(fig, "diversidade_linguagens_vs_contribuicao.png")
 
+    def closed_issues_ratio(self):
+        total = self.df["total_issues"]
+        closed = self.df["issues_fechadas"]
+        # total == 0 vira NaN: 0/0 e indefinido e nao equivale a 0% de fechamento
+        return closed / total.where(total > 0)
+
+    def closed_issues_ratio_stats(self):
+        ratio = self.closed_issues_ratio()
+        com_issues = ratio.dropna()
+        total = len(ratio)
+
+        return {
+            "total_repositorios": total,
+            "com_issues": len(com_issues),
+            "sem_issues": total - len(com_issues),
+            "mediana": round(float(com_issues.median()), 4),
+            "media": round(float(com_issues.mean()), 4),
+            "desvio_padrao": round(float(com_issues.std()), 4),
+            "minimo": round(float(com_issues.min()), 4),
+            "maximo": round(float(com_issues.max()), 4),
+            "p10": round(float(com_issues.quantile(0.10)), 4),
+            "p25": round(float(com_issues.quantile(0.25)), 4),
+            "p75": round(float(com_issues.quantile(0.75)), 4),
+            "p90": round(float(com_issues.quantile(0.90)), 4),
+            "acima_do_limiar": int((com_issues >= self.HIGH_RATIO_THRESHOLD).sum()),
+            "totalmente_fechadas": int((com_issues >= 1).sum())
+        }
+
+    def build_closed_issues_ratio_table(self):
+        ratio = self.closed_issues_ratio()
+        com_issues = ratio.dropna()
+
+        faixas = pd.cut(
+            com_issues,
+            bins=self.ISSUE_RATIO_BINS,
+            labels=self.ISSUE_RATIO_LABELS,
+            include_lowest=True
+        )
+        contagem = faixas.value_counts().reindex(self.ISSUE_RATIO_LABELS, fill_value=0)
+
+        table = pd.DataFrame({
+            "faixa": self.ISSUE_RATIO_LABELS + [self.NO_ISSUES_LABEL],
+            "repositorios": list(contagem.to_numpy()) + [len(ratio) - len(com_issues)]
+        })
+        table["percentual_do_total"] = (table["repositorios"] / len(ratio) * 100).round(2)
+        table["percentual_dos_com_issues"] = (
+            table["repositorios"] / len(com_issues) * 100
+        ).round(2)
+        table.loc[table["faixa"] == self.NO_ISSUES_LABEL, "percentual_dos_com_issues"] = None
+        return table
+
+    def print_closed_issues_ratio_summary(self):
+        stats = self.closed_issues_ratio_stats()
+        print(
+            f"Razão issues fechadas/total — mediana: {stats['mediana']} "
+            f"({stats['mediana']:.1%}) em {stats['com_issues']} repositórios com issues; "
+            f"{stats['sem_issues']} repositórios com 0 issues (razão indefinida) "
+            f"ficam fora do cálculo"
+        )
+        return stats
+
+    def plot_closed_issues_ratio_distribution(self, bin_width=0.05):
+        stats = self.closed_issues_ratio_stats()
+        com_issues = self.closed_issues_ratio().dropna()
+
+        arestas = np.arange(0, 1 + bin_width, bin_width)
+        contagem, arestas = np.histogram(com_issues, bins=arestas)
+        centros = (arestas[:-1] + arestas[1:]) / 2
+        maximo = int(contagem.max())
+
+        colors = [
+            self.COLOR_POPULAR if inicio >= self.HIGH_RATIO_THRESHOLD else self.COLOR_OTHER
+            for inicio in arestas[:-1]
+        ]
+
+        fig, ax = plt.subplots(figsize=(11, 6))
+        ax.bar(
+            centros,
+            contagem,
+            width=bin_width,
+            color=colors,
+            edgecolor="white",
+            linewidth=0.9,
+            zorder=2
+        )
+
+        for centro, valor in zip(centros, contagem):
+            if valor == 0:
+                continue
+            ax.text(
+                centro,
+                valor + maximo * 0.018,
+                str(valor),
+                ha="center",
+                fontsize=8,
+                color=self.COLOR_INK_SECONDARY,
+                bbox=dict(facecolor="white", edgecolor="none", pad=0.8),
+                zorder=5
+            )
+
+        ax.axvline(
+            stats["mediana"],
+            color=self.COLOR_INK,
+            linewidth=1.6,
+            linestyle="--",
+            zorder=4
+        )
+        ax.text(
+            stats["mediana"] - 0.012,
+            maximo * 0.98,
+            f"mediana {stats['mediana']:.1%}",
+            ha="right",
+            va="top",
+            fontsize=9.5,
+            color=self.COLOR_INK
+        )
+
+        self._titles(
+            ax,
+            f"Razão de issues fechadas dos {stats['total_repositorios']} "
+            f"repositórios mais estrelados",
+            f"Mediana de {stats['mediana']:.1%} entre os {stats['com_issues']} repositórios "
+            f"com issues · cada barra é uma faixa de {bin_width * 100:.0f} pontos percentuais"
+        )
+        ax.set_xlabel(
+            "Issues fechadas / total de issues (%)",
+            fontsize=10,
+            color=self.COLOR_INK_SECONDARY
+        )
+        ax.set_ylabel("Número de repositórios", fontsize=10, color=self.COLOR_INK_SECONDARY)
+        ax.set_xlim(0, 1)
+        ax.set_ylim(0, maximo * 1.16)
+        ax.set_xticks(arestas)
+        ax.set_xticklabels([f"{aresta * 100:.0f}" for aresta in arestas], fontsize=8.5)
+        ax.tick_params(axis="x", length=3, color=self.COLOR_GRID)
+
+        limiar = self.HIGH_RATIO_THRESHOLD
+        acima = stats["acima_do_limiar"]
+        handles = [
+            plt.Rectangle((0, 0), 1, 1, color=self.COLOR_POPULAR),
+            plt.Rectangle((0, 0), 1, 1, color=self.COLOR_OTHER)
+        ]
+        ax.legend(
+            handles,
+            [
+                f"≥ {limiar:.0%} fechadas — {acima} repositórios "
+                f"({acima / stats['com_issues']:.1%} dos que têm issues)",
+                f"< {limiar:.0%} fechadas — {stats['com_issues'] - acima} repositórios"
+            ],
+            loc="upper left",
+            frameon=False,
+            fontsize=9,
+            labelcolor=self.COLOR_INK_SECONDARY
+        )
+
+        ax.grid(axis="y", color=self.COLOR_GRID, linewidth=1, alpha=0.9)
+        ax.grid(axis="x", visible=False)
+        ax.set_axisbelow(True)
+        for lado in ("top", "right", "left"):
+            ax.spines[lado].set_visible(False)
+
+        self._footnote(
+            fig,
+            "Razão = issues fechadas / total de issues (campos totalIssues e closedIssues da API "
+            "GraphQL do GitHub).\n"
+            f"{stats['sem_issues']} dos {stats['total_repositorios']} repositórios têm 0 issues: "
+            "a razão seria 0/0, indefinida, e por isso não entram na mediana nem no gráfico "
+            "(ex.: torvalds/linux, git/git, django/django, que não usam o issue tracker do GitHub)."
+        )
+        fig.tight_layout(rect=(0, 0.075, 1, 1))
+
+        return self._save(fig, "distribuicao_razao_issues_fechadas.png")
+
     def generate_all(self):
         self.plot_releases_distribution()
-        self.export_language_counts()
         self.plot_primary_language_count()
         self.plot_language_popularity_comparison()
+        self.print_closed_issues_ratio_summary()
+        self.plot_closed_issues_ratio_distribution()
 
 
 if __name__ == "__main__":
