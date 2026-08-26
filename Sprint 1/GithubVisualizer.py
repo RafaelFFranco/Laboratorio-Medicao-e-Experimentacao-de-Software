@@ -101,6 +101,66 @@ class GithubVisualizer:
             "distribuicao_total_releases.png"
         )
 
+    def median_pull_requests_aceitas(self):
+        data = self.df["total_pull_requests_aceitas"].dropna()
+        mediana = data.median()
+        print(f"Mediana de pull requests aceitas: {mediana}")
+        return mediana
+
+    def plot_pull_requests_aceitas_distribution(self):
+        data = self.df["total_pull_requests_aceitas"].dropna()
+        mediana = data.median()
+
+        bins = [-1, 0, 10, 50, 100, 500, float("inf")]
+        labels = [
+            "0",
+            "1–10",
+            "11–50",
+            "51–100",
+            "101–500",
+            ">500"
+        ]
+
+        faixas = pd.cut(
+            data,
+            bins=bins,
+            labels=labels
+        )
+
+        distribuicao = faixas.value_counts().reindex(labels, fill_value=0)
+
+        fig, ax = plt.subplots(figsize=(10, 5))
+
+        distribuicao.plot(
+            kind="barh",
+            ax=ax
+        )
+
+        ax.set_title(
+            f"Distribuição dos Repositórios por Total de PRs Aceitas (Mediana = {mediana:.0f})"
+        )
+        ax.set_xlabel("Número de Repositórios")
+        ax.set_ylabel("Total de Pull Requests Aceitas")
+
+        for i, valor in enumerate(distribuicao):
+            ax.text(
+                valor + max(distribuicao) * 0.01,
+                i,
+                str(valor),
+                va="center",
+                fontsize=10
+            )
+
+        ax.grid(axis="x", alpha=0.2)
+        ax.set_axisbelow(True)
+
+        fig.tight_layout()
+
+        return self._save(
+            fig,
+            "distribuicao_total_pull_requests_aceitas.png"
+        )
+
     def _titles(self, ax, title, subtitle=None):
         ax.set_title(
             title,
@@ -751,6 +811,8 @@ class GithubVisualizer:
 
     def generate_all(self):
         self.plot_releases_distribution()
+        self.median_pull_requests_aceitas()
+        self.plot_pull_requests_aceitas_distribution()
         self.plot_primary_language_count()
         self.plot_language_popularity_comparison()
         self.print_closed_issues_ratio_summary()
