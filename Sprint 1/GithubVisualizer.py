@@ -968,6 +968,71 @@ class GithubVisualizer:
 
         return self._save(fig, "distribuicao_razao_issues_fechadas.png")
 
+    def build_rq_summary_table(self, top_n_languages=6):
+        def mediana_segura(serie):
+            serie = pd.to_numeric(serie, errors="coerce").dropna()
+            return (round(serie.median(), 2) if len(serie) else "N/D"), len(serie)
+
+        linhas = []
+
+        # RQ01 - idade
+        valor, n = mediana_segura(self.df["idade_em_anos"])
+        linhas.append({
+            "RQ": "RQ01", "Pergunta": "Repositórios populares são maduros (antigos)?",
+            "Linguagem": "Geral", "Métrica": "Idade do repositório",
+            "N": n, "Mediana": valor, "Unidade": "anos"
+        })
+
+        # RQ02 - contribuição externa
+        valor, n = mediana_segura(self.df["total_pull_requests_aceitas"])
+        linhas.append({
+            "RQ": "RQ02", "Pergunta": "Repositórios populares recebem muita contribuição externa?",
+            "Linguagem": "Geral", "Métrica": "Pull Requests aceitas",
+            "N": n, "Mediana": valor, "Unidade": "PRs"
+        })
+
+        # RQ03 - releases
+        valor, n = mediana_segura(self.df["total_releases"])
+        linhas.append({
+            "RQ": "RQ03", "Pergunta": "Repositórios populares lançam releases com frequência?",
+            "Linguagem": "Geral", "Métrica": "Total de releases",
+            "N": n, "Mediana": valor, "Unidade": "releases"
+        })
+
+        # RQ04 - atualização
+        valor, n = mediana_segura(self.df["dias_desde_ultima_atualizacao"])
+        linhas.append({
+            "RQ": "RQ04", "Pergunta": "Repositórios populares são atualizados com frequência?",
+            "Linguagem": "Geral", "Métrica": "Dias desde a última atualização",
+            "N": n, "Mediana": valor, "Unidade": "dias"
+        })
+
+        # RQ05 - linguagem mais popular (métrica categórica: moda, não mediana)
+        langs = self.df["linguagem_primaria"].dropna()
+        langs = langs[langs != "Sem informação"]
+        if len(langs):
+            top_lang = langs.value_counts().idxmax()
+            pct = langs.value_counts(normalize=True).max() * 100
+            resumo_lang = f"{top_lang} ({pct:.1f}%)"
+        else:
+            resumo_lang = "N/D"
+        linhas.append({
+            "RQ": "RQ05", "Pergunta": "Repositórios populares são escritos nas linguagens mais populares?",
+            "Linguagem": "Geral", "Métrica": "Linguagem primária mais frequente (moda)",
+            "N": len(langs), "Mediana": resumo_lang, "Unidade": "% do total"
+        })
+
+        # RQ06 - razão de issues fechadas
+        valor, n = mediana_segura(self.df["razao_issues_fechadas"])
+        linhas.append({
+            "RQ": "RQ06", "Pergunta": "Repositórios populares possuem alto percentual de issues fechadas?",
+            "Linguagem": "Geral", "Métrica": "Razão de issues fechadas",
+            "N": n, "Mediana": valor, "Unidade": "proporção (0-1)"
+        })
+
+        df_summary = pd.DataFrame(linhas)
+        return df_summary[["RQ", "Pergunta", "Linguagem", "Métrica", "N", "Mediana", "Unidade"]]
+
     def generate_all(self):
         self.plot_releases_distribution()
         self.median_pull_requests_aceitas()
@@ -979,8 +1044,13 @@ class GithubVisualizer:
         self.plot_language_popularity_comparison()
         self.print_closed_issues_ratio_summary()
         self.plot_closed_issues_ratio_distribution()
-
+        pass
 
 if __name__ == "__main__":
     viz = GithubVisualizer("repositorios_1000.csv")
+
+    tabela_resumo = viz.build_rq_summary_table()
+    print(tabela_resumo.to_string(index=False))
+    tabela_resumo.to_csv("graficos/tabela_resumo_rqs.csv", index=False, encoding="utf-8")
+
     viz.generate_all()
